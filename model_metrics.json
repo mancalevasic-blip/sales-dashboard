@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-06-22T12:16:30.006628+00:00",
+  "models": [
+    {
+      "model": "Baseline: Linear Regression",
+      "rmse": 94.56395662802765,
+      "mae": 71.79015393522063,
+      "r2": 0.42122436912771344
+    },
+    {
+      "model": "Comparison: Random Forest",
+      "rmse": 42.271797735091596,
+      "mae": 19.607651845335177,
+      "r2": 0.8843460679805304
+    }
+  ],
+  "best_model": "Comparison: Random Forest",
+  "mean_revenue": 177.0105598621878,
+  "relative_error_pct": 11.07710854120838,
+  "quality": "good",
+  "outperforms_baseline": true,
+  "feature_importance": {
+    "product_freq": 0.3876792598416711,
+    "quantity": 0.3515581100753783,
+    "month": 0.05329138122444855,
+    "cat_Electronics": 0.042602258166627854,
+    "day_of_week": 0.04159774943478567,
+    "cat_Beauty": 0.037133736202713624,
+    "cat_Home & Kitchen": 0.03076334419548792,
+    "cat_Office": 0.02654026757448748,
+    "cat_Sports & Outdoor": 0.02125354535257361,
+    "cat_Toys": 0.007580347931825813
+  }
+}
