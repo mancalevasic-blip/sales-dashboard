@@ -1,0 +1,136 @@
+---
+title: "Monthly Sales Report"
+date: today
+format:
+  html:
+    toc: true
+    embed-resources: true
+  pdf:
+    toc: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+orders <- read.csv("data/orders.csv", stringsAsFactors = FALSE)
+orders$revenue <- orders$quantity * orders$unit_price
+orders$month <- substr(orders$order_date, 1, 7)
+
+monthly <- aggregate(
+  cbind(revenue, quantity) ~ month,
+  data = orders,
+  FUN = sum
+)
+orders_count <- table(orders$month)
+monthly$orders <- as.integer(orders_count[monthly$month])
+monthly <- monthly[order(monthly$month), ]
+
+best_month <- monthly$month[which.max(monthly$revenue)]
+best_revenue <- max(monthly$revenue)
+total_revenue <- sum(monthly$revenue)
+
+fmt_usd <- function(x) paste0("$", formatC(x, format = "f", digits = 2, big.mark = ","))
+```
+
+## Summary
+
+- **Total revenue:** `r fmt_usd(total_revenue)` across `r nrow(orders)` orders
+- **Best month:** `r best_month` with `r fmt_usd(best_revenue)` in revenue (`r monthly$orders[monthly$month == best_month]` orders)
+- **Period covered:** `r min(monthly$month)` to `r max(monthly$month)`
+
+## Revenue by Month
+
+```{r}
+#| label: table
+#| echo: false
+display <- data.frame(
+  Month = monthly$month,
+  Orders = monthly$orders,
+  Revenue = fmt_usd(monthly$revenue)
+)
+knitr::kable(display, align = c("l", "r", "r"))
+```
+
+Revenue climbs almost every month from **2024-07** (\$44,576.74) through the
+**2024-12** peak (\$97,138.60) — more than double over six months — before
+dropping sharply to \$55,698.25 in **2025-01**. From there it recovers
+steadily, closing the period at \$80,435.87 in **2025-06**, just shy of the
+December high. Order counts track revenue almost one-for-one (e.g. 270 orders
+in July vs. 561 in December), indicating the swings are driven mainly by
+*how many* orders are placed each month rather than by changes in what
+customers spend per order.
+
+## Revenue Trend
+
+```{r}
+#| label: chart
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4.5
+bar_colors <- ifelse(monthly$month == best_month, "#d62728", "#1f77b4")
+barplot(
+  monthly$revenue,
+  names.arg = monthly$month,
+  las = 2,
+  col = bar_colors,
+  main = "Monthly Revenue",
+  ylab = "Revenue (USD)",
+  cex.names = 0.8
+)
+```
+
+The chart makes the shape of the year obvious at a glance: a smooth ramp-up
+through the second half of 2024, a single red bar marking the **2024-12**
+peak (highlighted in the plot), and then a one-month cliff in January 2025
+before revenue resumes climbing through the first half of 2025. No other
+month comes close to matching the post-holiday drop in either direction —
+the rest of the series moves in comparatively small, gradual steps.
+
+## Discussion
+
+```{r}
+#| label: aov
+#| include: false
+monthly$aov <- monthly$revenue / monthly$orders
+h2_2024 <- sum(monthly$revenue[monthly$month >= "2024-07" & monthly$month <= "2024-12"])
+h1_2025 <- sum(monthly$revenue[monthly$month >= "2025-01" & monthly$month <= "2025-06"])
+half_growth <- (h1_2025 / h2_2024 - 1) * 100
+jan_drop <- (monthly$revenue[monthly$month == "2025-01"] /
+             monthly$revenue[monthly$month == "2024-12"] - 1) * 100
+```
+
+**Seasonality, not pricing, drives the peak.** Average order value (AOV)
+stays in a narrow \$165–\$192 band all year (`r round(min(monthly$aov),0)`
+to `r round(max(monthly$aov),0)` USD), while order counts range from 270 to
+561 — roughly double. December's record revenue is therefore explained
+almost entirely by order *volume* (561 orders, the most of any month), not
+by customers spending more per order. This is consistent with a holiday
+shopping effect rather than a pricing or promotion change.
+
+**The January drop is real but short-lived.** Revenue falls
+`r round(jan_drop, 1)`% from December to January — the only double-digit
+month-over-month decline in the dataset — then order volume and revenue
+both recover steadily over the following five months. This pattern matches
+typical post-holiday demand pullback rather than a sustained downturn: by
+**2025-06**, revenue (\$80,435.87) is back above every pre-peak 2024 month.
+
+**Underlying trend is positive across halves.** Total revenue for the second
+half of 2024 (Jul–Dec) was \$`r formatC(h2_2024, format = "f", digits = 2, big.mark = ",")`,
+versus \$`r formatC(h1_2025, format = "f", digits = 2, big.mark = ",")` for
+the first half of 2025 — a `r round(half_growth, 1)`% increase despite H1
+2025 having no equivalent holiday spike, suggesting the business is growing
+its baseline (non-holiday) demand, not just riding a one-time seasonal
+event.
+
+**Limitations.** This analysis uses gross revenue (`quantity × unit_price`)
+with no adjustment for returns, discounts, or refunds, and only twelve
+months are available, so the "seasonal" interpretation of the December peak
+cannot be confirmed without a second holiday cycle to compare against.
+
+## Conclusion
+
+Revenue grew steadily over the period, with a clear seasonal peak in **`r best_month`**,
+driven by higher order volume (`r monthly$orders[monthly$month == best_month]` orders)
+rather than higher spending per order. The sharp pullback in the following
+month was temporary, and the underlying revenue trend across the full year
+remained positive.
